@@ -103,7 +103,7 @@ class Server {
      * @param string $level 日志级别
      */
     private function _log($appName, $msg, $level = 'info') {
-        $data = date('Y-m-d h:i:s').' ['.$level.'] ['. $appName.'] '. $msg.PHP_EOL;
+        $data = date('Y-m-d H:i:s').' ['.$level.'] ['. $appName.'] '. $msg.PHP_EOL;
         file_put_contents($this->_logFile, $data,FILE_APPEND);
     }
 

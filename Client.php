@@ -44,7 +44,7 @@ class Client {
      * @param $level string 日志级别
      */
     private function _log($msg, $level = 'info') {
-        $data = date('Y-m-d h:i:s').' ['.$level.'] ['. $this->_appName.'] '. $msg .PHP_EOL;
+        $data = date('Y-m-d H:i:s').' ['.$level.'] ['. $this->_appName.'] '. $msg .PHP_EOL;
         file_put_contents($this->_logFile, $data, FILE_APPEND);
     }
 

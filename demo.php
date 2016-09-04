@@ -37,6 +37,6 @@ try{
     $c -> addJob($job);
     var_dump($c->getJobStatus());
 } catch (Exception $e) {
-    $data = date('Y-m-d h:i:s').' [error] [client] '. $e->getMessage().PHP_EOL;
+    $data = date('Y-m-d H:i:s').' [error] [client] '. $e->getMessage().PHP_EOL;
     file_put_contents('/var/log/wxTemplateMsg.log', $data,FILE_APPEND);
 }
