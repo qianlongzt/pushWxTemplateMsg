@@ -3,6 +3,8 @@
 推送微信模板消息
 
 配置config.php
+服务端 启动 `Server.php` 
+后台运行
 
 客户端 引用Client.php
 	```
