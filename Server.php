@@ -15,11 +15,6 @@ class Server {
 
     /**
      * server constructor.
-     * @param $host string redis ip
-     * @param $port string redis port
-     * @param $tokenName string 微信 tokename
-     * @param int $db  redis 数据库
-     * @param string $auth redis 数据库验证
      */
     public function __construct() {
         $config = require 'config.php';
@@ -100,10 +95,21 @@ class Server {
     private function _addPrefix($name) {
         return $this->_prefix.$name;
     }
+
+    /**
+     * 记录日志
+     * @param $appName string 应用名称
+     * @param $msg string 信息
+     * @param string $level 日志级别
+     */
     private function _log($appName, $msg, $level = 'info') {
         $data = date('Y-m-d h:i:s').' ['.$level.'] ['. $appName.'] '. $msg.PHP_EOL;
         file_put_contents($this->_logFile, $data,FILE_APPEND);
     }
+
+    /**
+     *运行服务
+     */
     public function start() {
         $redis = $this->_redis;
         $highJob = $this->_addPrefix('jobs:high');
@@ -134,6 +140,6 @@ try {
     $s = new Server();
     $s -> start();
 } catch (Exception $e) {
-    $data = date('Y-m-d h:i:s').' [error] [server] [redis]'. $e->getMessage().PHP_EOL;
+    $data = date('Y-m-d h:i:s').' [error] [server] '. $e->getMessage().PHP_EOL;
     file_put_contents('/var/log/wxTemplateMsg.log', $data,FILE_APPEND);
 }

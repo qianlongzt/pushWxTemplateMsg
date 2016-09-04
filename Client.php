@@ -40,13 +40,14 @@ class Client {
     }
 
     /**
-     * @param $result
-     * @param $level
+     * @param $msg string 日志信息
+     * @param $level string 日志级别
      */
     private function _log($msg, $level = 'info') {
         $data = date('Y-m-d h:i:s').' ['.$level.'] ['. $this->_appName.'] '. $msg .PHP_EOL;
         file_put_contents($this->_logFile, $data, FILE_APPEND);
     }
+
     /**
      * @param $data array 模板消息数据
     {
@@ -64,8 +65,8 @@ class Client {
     }
     }
     }
-     * @param string $level 消息等级
-     * @return array 发送模板消息回传信息
+     * @param string $level 消息等级 normal / high
+     * @return string 添加的消息任务id
      *
      */
     public function addJob($data, $level = 'normal') {
@@ -94,8 +95,15 @@ class Client {
         return $this->_jobCode;
     }
 
-    public function getJobStatus() {
+    /**
+     * @param null $jobCode string jobCode 通过 addJob 返回的，默认 上一个添加的任务
+     * @return array
+     */
+    public function getJobStatus($jobCode= null) {
+        if($jobCode == null) {
+            $jobCode = $this->_jobCode;
+        }
         $redis = $this->_redis;
-        return $redis -> hGetAll($this->_jobCode);
+        return $redis -> hGetAll($jobCode);
     }
 }
