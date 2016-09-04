@@ -134,6 +134,6 @@ try {
     $s = new Server();
     $s -> start();
 } catch (Exception $e) {
-    $data = date('Y-m-d h:i:s').' [error] [server] '. $e->getMessage().PHP_EOL;
+    $data = date('Y-m-d h:i:s').' [error] [server] [redis]'. $e->getMessage().PHP_EOL;
     file_put_contents('/var/log/wxTemplateMsg.log', $data,FILE_APPEND);
 }
