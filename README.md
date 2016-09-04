@@ -1,5 +1,9 @@
 #pushWxTemplateMsg
 
+#require 
+Redis
+PHP
+
 推送微信模板消息
 
 配置config.php
@@ -8,7 +12,7 @@
 
 客户端 引用Client.php
 
-	```
+```
 	$c = new Client('appName');
 	$job['touser'] = 'o0Myhs4E7CJdfXnv4nMx7r4hEWuE';
 	$job['template_id'] =  'aoUTGmoWdXY02NdOWvdLxRadMADfuXRx5jMPxEe2ecI';
