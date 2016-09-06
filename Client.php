@@ -84,6 +84,7 @@ class Client {
                     'createTime' => time(),
                     'status' => 'create',
                     'result' => '',
+		    'count'  => 0,
                 )
             );
         $job['jobCode'] = $this->_jobCode;

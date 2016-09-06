@@ -65,27 +65,20 @@ class Server {
      * @return array 发送模板消息回传信息
      *
      */
-    public function sendTemplateMessage($data) {
+    public function sendTemplateMessage($data, $token) {
         $template = json_encode($data, JSON_UNESCAPED_UNICODE);
-        $api_url = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=".$this->getWxToken(0);
+
+        $api_url = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=".$token;
+
         $curl = curl_init($api_url);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $template);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 2);
         $html = curl_exec($curl);
         curl_close($curl);
 
         $html = json_decode($html, true);
-        if($html['errcode'] == 0){
-            return array(
-                'status' => true,
-                'msg' => 'ok'
-            );
-        } else {
-            return array(
-                'status' => false,
-                'msg' => $html['errmsg'],
-            );
-        }
+	return $html;
     }
 
     /**
@@ -114,8 +107,14 @@ class Server {
         $redis = $this->_redis;
         $highJob = $this->_addPrefix('jobs:high');
         $normalJob = $this->_addPrefix('jobs:normal');
-        $this->_log('main', 'start push', 'info');
+        $this->_log('Server', 'start push', 'info');
         while(1){
+	    $token = $this->getWxToken();
+	    if(!$token) {
+	    	$this->_log('Server', 'wait for access_token', 'error');
+	    	sleep(60);
+		continue;
+	    }
             $Job = $redis->brpop($highJob, $normalJob, 10);
             if( is_array($Job) && $Job === array() ){
                 continue;
@@ -129,10 +128,24 @@ class Server {
             $redis -> hSet($jobCode, 'status', 'runing');
             $this->_log($appName, 'run '.$jobCode, 'info');
 
-            $result = $this->sendTemplateMessage($jobData);
+            $result = $this->sendTemplateMessage($jobData, $token);
+	    if(!$result || $result['errcode'] == '40001' || $result['errcode'] == '40014' || $result['errcode'] == '41001' || $result['errcode'] == '42001') {
+	    	sleep(60); //wait for access_token back
+	    	$jobTryCount = $redis -> hGet($jobCode, 'count');
+		if($jobTryCount >= 5) {
+			$this->_log('Server', 'try it '.$jobCode.' 5 times, but still can finish it, '.$Job[1], 'error');
+            		$redis -> hSet($jobCode, 'status', 'end');
+		        $redis -> hSet($jobCode, 'result', $result['errmsg']);
+			continue;
+		}
+            	$redis -> hSet($jobCode, 'status', 'try_again');
+            	$redis -> hIncrby($jobCode, 'count', 1);
+		$this->_log('Server', 'try agian for '.$jobCode, 'error');
+		$redis -> lpush($highJob, json_encode($jobInfo, JSON_UNESCAPED_UNICODE));
+	    }
             $redis -> hSet($jobCode, 'status', 'end');
-            $redis -> hSet($jobCode, 'result', $result['msg']);
-            $this->_log($appName, 'end '.$jobCode . ' '. $result['msg'], 'info');
+            $redis -> hSet($jobCode, 'result', $result['errmsg']);
+            $this->_log($appName, 'end '.$jobCode . ' '. $result['errcode'].' '. $result['errmsg'], 'info');
        }
     }
 }
