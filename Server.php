@@ -140,7 +140,7 @@ class Server {
 		}
             	$redis -> hSet($jobCode, 'status', 'try_again');
             	$redis -> hIncrby($jobCode, 'count', 1);
-		$this->_log('Server', 'try agian for '.$jobCode, 'error');
+		$this->_log('Server', 'try agian for '.$jobCode .' because '.$result['errmsg'], 'error');
 		$redis -> rpoplpush($selfJob, $normalJob);
 	    	sleep(60); //wait for access_token back
 	    }
