@@ -86,7 +86,7 @@ class Client {
         $job['jobCode'] = $this->_jobCode;
         $job['appName'] = $this->_appName;
         $job['data'] = $data;
-        $redis->expire($this->_jobCode, 86400);
+        $redis->expire($this->_jobCode, 8640);//放2.4h
         $this->_log('add '.$this->_jobCode, 'info');
         $redis -> lPush($jobList, json_encode($job, JSON_UNESCAPED_UNICODE));
         return $this->_jobCode;
