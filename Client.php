@@ -65,16 +65,12 @@ class Client {
     }
     }
     }
-     * @param string $level 消息等级 normal / high
+     * @param string $level 消息等级 normal
      * @return string 添加的消息任务id
      *
      */
-    public function addJob($data, $level = 'normal') {
-        if($level === 'high') {
-            $jobList = $this->_addPrefix('jobs:high');
-        } else {
-            $jobList = $this->_addPrefix('jobs:normal');
-        }
+    public function addJob($data) {
+        $jobList = $this->_addPrefix('jobs:normal');
         $jobName = $this ->_addPrefix('jobIds');
         $redis = $this->_redis;
         $id = $redis->incr($jobName);

@@ -105,35 +105,35 @@ class Server {
      */
     public function start() {
         $redis = $this->_redis;
-        $highJob = $this->_addPrefix('jobs:high');
         $normalJob = $this->_addPrefix('jobs:normal');
+	$selfJob = $this->_addPrefix('jobs:self');
+	while($redis -> rpoplpush($selfJob, $normalJob));//将意外退出的任务重新加入到任务列表中
         $this->_log('Server', 'start push', 'info');
         while(1){
 	    $token = $this->getWxToken();
-	    if(!$token) {
+	    if(!$token) {//不能得到token就继续
 	    	$this->_log('Server', 'wait for access_token', 'error');
 	    	sleep(60);
 		continue;
 	    }
-            $Job = $redis->brpop($highJob, $normalJob, 10);
-            if( is_array($Job) && $Job === array() ){
+            $Job = $redis->brpoplpush($normalJob, $selfJob,10);//获得一个任务，然后加入到自己的任务队列
+            if( !$Job ){//没有任务等待
                 continue;
             }
-            $jobLevel = $Job[1] === $highJob?'high':'normal';
-            $jobInfo = json_decode($Job[1], true);
-            $appName = $jobInfo['appName'];
-            $jobCode = $jobInfo['jobCode'];
-            $jobData = $jobInfo['data'];
+            $jobInfo = json_decode($Job, true);//任务数据
+            $appName = $jobInfo['appName'];//添加任务的应用名称
+            $jobCode = $jobInfo['jobCode'];//任务的id
+            $jobData = $jobInfo['data'];//任务模板消息数据
 
-            $redis -> hSet($jobCode, 'status', 'runing');
-            $this->_log($appName, 'run '.$jobCode, 'info');
+            $redis -> hSet($jobCode, 'status', 'runing');//设置任务状态为 运行中
+            $this->_log($appName, 'run '.$jobCode, 'info');//记录日志
 
-            $result = $this->sendTemplateMessage($jobData, $token);
-	    if(!$result || $result['errcode'] == '40001' || $result['errcode'] == '40014' || $result['errcode'] == '41001' || $result['errcode'] == '42001') {
-	    	sleep(60); //wait for access_token back
-	    	$jobTryCount = $redis -> hGet($jobCode, 'count');
-		if($jobTryCount >= 5) {
-			$this->_log('Server', 'try it '.$jobCode.' 5 times, but still can finish it, '.$Job[1], 'error');
+            $result = $this->sendTemplateMessage($jobData, $token);//发送模板消息
+	    if(!$result || $result['errcode'] == '40001' || $result['errcode'] == '40014' || $result['errcode'] == '41001' || $result['errcode'] == '42001') { //各种access_token 不能用的情况
+
+	    	$jobTryCount = $redis -> hGet($jobCode, 'count');//得到任务尝试次数
+		if($jobTryCount >= 5) {//超过5次放弃这个任务，并把任务记录到日志中
+			$this->_log('Server', 'try it '.$jobCode.' 5 times, but still cann\'t finish it, '.$Job, 'error');
             		$redis -> hSet($jobCode, 'status', 'end');
 		        $redis -> hSet($jobCode, 'result', $result['errmsg']);
 			continue;
@@ -141,11 +141,13 @@ class Server {
             	$redis -> hSet($jobCode, 'status', 'try_again');
             	$redis -> hIncrby($jobCode, 'count', 1);
 		$this->_log('Server', 'try agian for '.$jobCode, 'error');
-		$redis -> lpush($highJob, json_encode($jobInfo, JSON_UNESCAPED_UNICODE));
+		$redis -> rpoplpush($selfJob, $normalJob);
+	    	sleep(60); //wait for access_token back
 	    }
-            $redis -> hSet($jobCode, 'status', 'end');
-            $redis -> hSet($jobCode, 'result', $result['errmsg']);
-            $this->_log($appName, 'end '.$jobCode . ' '. $result['errcode'].' '. $result['errmsg'], 'info');
+            $redis -> hSet($jobCode, 'status', 'end');//结束任务
+            $redis -> hSet($jobCode, 'result', $result['errmsg']);//记录结果
+	    $redis -> lpop($selfJob);//删除已经完成的任务
+            $this->_log($appName, 'end '.$jobCode . ' '. $result['errcode'].' '. $result['errmsg'], 'info');//写入日志
        }
     }
 }
